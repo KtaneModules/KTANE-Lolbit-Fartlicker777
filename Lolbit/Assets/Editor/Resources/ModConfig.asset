@@ -11,16 +11,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 615501dbe4f3fe94fbf4b564abb10237, type: 3}
   m_Name: ModConfig
   m_EditorClassIdentifier: 
-  id: template
-  title: Template
-  author: 
-  description: 'Flavor text goes here.
+  id: Lolbit
+  title: Lolbit
+  author: me
+  description: 'We are experiencing technical difficulties, please stand by.
 
 
-    Solving description goes here.
-
-
-    Addition credits can go here.
+    Type in LOL when Lolbit is present.
 
 
     Manual can be found at ktane.timwi.de or in the manuals folder of your game.
@@ -29,4 +26,4 @@ MonoBehaviour:
     If there are any bugs, contact Fartlicker777#9169 on Discord.'
   version: 
   outputFolder: build
-  previewImage: {fileID: 0}
+  previewImage: {fileID: 2800000, guid: 6200eb04609484841ab29c5a3451710f, type: 3}
