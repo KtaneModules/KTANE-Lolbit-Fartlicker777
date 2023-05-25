@@ -20,6 +20,9 @@ public class Lolbit : MonoBehaviour {
    public GameObject[] Lolbits;
 
    bool[] Typed = new bool[3];
+   private float waitTimeMin = 20f;
+   private float waitTimeMax = 31f;
+   private bool TwitchPlaysActive;
 
    Coroutine Active;
    Coroutine PleaseStandBy;
@@ -64,6 +67,11 @@ public class Lolbit : MonoBehaviour {
    }
 
    protected void OnNeedyActivation () {
+      if (TwitchPlaysActive)
+      {
+         waitTimeMin = 35f;
+         waitTimeMax = 55f;
+      }
       Stupidthingactive = true;
       StartCoroutine(ChangeTime());
       StartCoroutine(Wait());
@@ -71,7 +79,7 @@ public class Lolbit : MonoBehaviour {
 
    IEnumerator Wait () {
       Started = false;
-      yield return new WaitForSeconds(Rnd.Range(20, 31));
+      yield return new WaitForSeconds(Rnd.Range(waitTimeMin, waitTimeMax));
       Started = true;
       Active = StartCoroutine(Activation());
    }
@@ -111,7 +119,7 @@ public class Lolbit : MonoBehaviour {
 
    IEnumerator ChangeTime () {
       int Iteration = 0;
-      int[] WASTHATTHEBTIEDIOAWNDOWNAODWNOW = { 1, 9, 8, 3};
+      int[] WASTHATTHEBTIEDIOAWNDOWNAODWNOW = { 1, 9, 8, 7}; // this 7 used to be a 3 no fucking way deaf
       while (true) {
          Needy.SetNeedyTimeRemaining(WASTHATTHEBTIEDIOAWNDOWNAODWNOW[Iteration % 4] * 10 + WASTHATTHEBTIEDIOAWNDOWNAODWNOW[(Iteration + 1) % 4]);
          yield return new WaitForSeconds(1f);
