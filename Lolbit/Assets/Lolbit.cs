@@ -119,7 +119,7 @@ public class Lolbit : MonoBehaviour {
 
    IEnumerator ChangeTime () {
       int Iteration = 0;
-      int[] WASTHATTHEBTIEDIOAWNDOWNAODWNOW = { 1, 9, 8, 7}; // this 7 used to be a 3 no fucking way deaf
+      int[] WASTHATTHEBTIEDIOAWNDOWNAODWNOW = { 1, 9, 8, 3}; // this 7 used to be a 3 no fucking way deaf IT'S FUCKING 1983 YOU ACTUAL RETARD
       while (true) {
          Needy.SetNeedyTimeRemaining(WASTHATTHEBTIEDIOAWNDOWNAODWNOW[Iteration % 4] * 10 + WASTHATTHEBTIEDIOAWNDOWNAODWNOW[(Iteration + 1) % 4]);
          yield return new WaitForSeconds(1f);
