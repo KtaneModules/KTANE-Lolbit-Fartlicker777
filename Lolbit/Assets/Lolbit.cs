@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Reflection;
 using UnityEngine;
 using Rnd = UnityEngine.Random;
 
@@ -124,6 +125,25 @@ public class Lolbit : MonoBehaviour {
          Needy.SetNeedyTimeRemaining(WASTHATTHEBTIEDIOAWNDOWNAODWNOW[Iteration % 4] * 10 + WASTHATTHEBTIEDIOAWNDOWNAODWNOW[(Iteration + 1) % 4]);
          yield return new WaitForSeconds(1f);
          Iteration++;
+      }
+   }
+
+   void Start () {
+      if (GetMissionID() == "mod_ThiccBombs_the47better") {
+         Audio.PlaySoundAtTransform("Freddy_Intro", transform);
+      }
+   }
+
+   private string GetMissionID () {
+      try {
+         Component gameplayState = GameObject.Find("GameplayState(Clone)").GetComponent("GameplayState");
+         Type type = gameplayState.GetType();
+         FieldInfo fieldMission = type.GetField("MissionToLoad", BindingFlags.Public | BindingFlags.Static);
+         return fieldMission.GetValue(gameplayState).ToString();
+      }
+
+      catch (NullReferenceException) {
+         return "undefined";
       }
    }
 
