@@ -1,6 +1,8 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using UnityEngine;
 using Rnd = UnityEngine.Random;
 
@@ -20,6 +22,8 @@ public class Lolbit : MonoBehaviour {
    public GameObject LOL;
    public GameObject[] Lolbits;
 
+   LolbitSettings Settings = new LolbitSettings();
+
    bool[] Typed = new bool[3];
    private float waitTimeMin = 20f;
    private float waitTimeMax = 31f;
@@ -32,19 +36,90 @@ public class Lolbit : MonoBehaviour {
    static bool Playing;
    private float DefaultGameMusicVolume;
 
+   int AiLevel = 20;
+
+   static int ModuleIdCounter = 1;
+   int ModuleId;
+
+   class LolbitSettings {
+      public bool PlayVentablack = true;
+      public int AiLevel = 20;
+   }
+
+   static Dictionary<string, object>[] TweaksEditorSettings = new Dictionary<string, object>[]
+   {
+      new Dictionary<string, object>
+      {
+         { "Filename", "LolbitSettings.json" },
+         { "Name", "Lolbit Settings" },
+         { "Listing", new List<Dictionary<string, object>>{
+            new Dictionary<string, object>
+            {
+               { "Key", "Ventablack" },
+               { "Text", "The module will play Ventablack instead of the KTANE OST when Lolbit is on the bomb." },
+               
+            },
+            new Dictionary<string, object>
+            {
+               { "Key", "AI Level" },
+               { "Text", "Adjusts Lolbit's AI level, goes from 1-50 with a default of 20. Higher AI level means more of a chance to appear." }
+
+            }
+         } }
+      }
+   };
+
+   
+
    void Awake () {
+
+      ModuleId = ModuleIdCounter++;
+
+
+
+
+      if (!Application.isEditor) {
+         ModConfig<LolbitSettings> modConfig = new ModConfig<LolbitSettings>("Lolbit");
+         //Read from the settings file, or create one if one doesn't exist
+         Settings = modConfig.Settings;
+         //Update the settings file in case there was an error during read
+         modConfig.Settings = Settings;
+         AiLevel = Settings.AiLevel;
+      }
+
+      string missionDesc = KTMissionGetter.Mission.Description;
+      if (missionDesc != null) {
+         Regex regex = new Regex(@"\^LolbitAI=$(true|false)");
+         var match = regex.Match(missionDesc);
+         if (match.Success) {
+            string[] options = match.Value.Replace("[LolbitAI=] ", "").Split(',');
+            int value = 20;
+            int.TryParse(options[0], out value);
+
+            Settings.AiLevel = value;
+         }
+      }
+
+      if (AiLevel < 1) {
+         AiLevel = 1;
+      }
+      else if (AiLevel > 50) {
+         AiLevel = 50;
+      }
 
       Needy.OnNeedyActivation += OnNeedyActivation;
       try {
          DefaultGameMusicVolume = GameMusicControl.GameMusicVolume;
-         if (!Playing) {
-            Music.Play();
-            Playing = true;
+         if (Settings.PlayVentablack || Application.isEditor) {
+            try { GameMusicControl.GameMusicVolume = 0.0f; } catch (Exception) { }
+            if (!Playing) {
+               Music.Play();
+               Playing = true;
+            }
          }
       }
       catch (Exception) { }
-      try { GameMusicControl.GameMusicVolume = 0.0f; } catch (Exception) { }
-
+      
       GetComponent<KMGameInfo>().OnStateChange += state => {
          if (state == KMGameInfo.State.Transitioning) {
             Playing = false;
@@ -68,11 +143,11 @@ public class Lolbit : MonoBehaviour {
    }
 
    protected void OnNeedyActivation () {
-      if (TwitchPlaysActive)
+      /*if (TwitchPlaysActive) tf was this quinn
       {
          waitTimeMin = 35f;
          waitTimeMax = 55f;
-      }
+      }*/
       Stupidthingactive = true;
       StartCoroutine(ChangeTime());
       StartCoroutine(Wait());
@@ -80,19 +155,35 @@ public class Lolbit : MonoBehaviour {
 
    IEnumerator Wait () {
       Started = false;
-      yield return new WaitForSeconds(Rnd.Range(waitTimeMin, waitTimeMax));
-      Started = true;
-      Active = StartCoroutine(Activation());
+      int randTime = Rnd.Range(7, 10);
+      //Debug.Log(AiLevel);
+      /*if (Application.isEditor) {
+         randTime = 10;
+      }*/
+      int MovementOpportunity = Rnd.Range(1, 51);
+      yield return new WaitForSeconds(randTime);
+      Debug.Log(MovementOpportunity);
+      if (MovementOpportunity <= AiLevel) {
+         Started = true;
+         Active = StartCoroutine(Activation());
+      }
+      else {
+         Reset();
+      }
    }
 
    IEnumerator Activation () {
-      
       for (int i = 0; i < 2; i++) {
          Lolbits[i].SetActive(true);
-         yield return new WaitForSeconds(1f);
+         for (int j = 0; j < 150 - AiLevel * 3; j++) {
+            yield return new WaitForSeconds(.01f); //1ish frame
+         }
       }
       Lolbits[2].SetActive(true);
       PleaseStandBy = StartCoroutine(GetLolled());
+      yield return new WaitForSeconds(6.67f); //400ish frames
+      Reset();
+      StopCoroutine(PleaseStandBy);
    }
 
    IEnumerator GetLolled () {
@@ -132,6 +223,7 @@ public class Lolbit : MonoBehaviour {
       if (GetMissionID() == "mod_ThiccBombs_the47better") {
          Audio.PlaySoundAtTransform("Freddy_Intro", transform);
       }
+      Debug.LogFormat("[Lolbit #{0}] The AI level for Lolbit is set to {1}. The default is 20, any lower is probably cheating on a challenge bomb :)", ModuleId, AiLevel);
    }
 
    private string GetMissionID () {
@@ -192,6 +284,7 @@ public class Lolbit : MonoBehaviour {
 
    IEnumerator ProcessTwitchCommand (string Command) {
       Command = Command.Trim().ToUpper();
+      yield return null;
       if (Command == "LOL" && Started) {
          Audio.PlaySoundAtTransform("LType", transform);
          yield return new WaitForSeconds(.1f);
@@ -206,10 +299,14 @@ public class Lolbit : MonoBehaviour {
       }
    }
 
-   IEnumerator TwitchHandleForcedSolve () {
+   void TwitchHandleForcedSolve () {
+      StartCoroutine(DoTheThugShaker());
+   }
+
+   IEnumerator DoTheThugShaker () {
       while (true) {
          if (!Started) {
-            yield return true;
+            yield return null;
          }
          else {
             yield return ProcessTwitchCommand("LOL");
