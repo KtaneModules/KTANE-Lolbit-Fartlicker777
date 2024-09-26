@@ -69,7 +69,22 @@ public class Lolbit : MonoBehaviour {
       }
    };
 
-   
+   void OnDestroy()
+   {
+      Playing = false;
+      try
+      {
+          Music.Stop();
+      }
+      catch
+      {
+          throw new Exception("YOU MUST CONSTRUCT ADDITIONAL PYLONS");
+      }
+      finally
+      {
+          GameMusicControl.GameMusicVolume = DefaultGameMusicVolume;
+      }
+    }
 
    void Awake () {
 
@@ -124,6 +139,7 @@ public class Lolbit : MonoBehaviour {
          if (state == KMGameInfo.State.Transitioning) {
             Playing = false;
             try {
+               if (Music.isPlaying)
                Music.Stop();
             }
             catch {
