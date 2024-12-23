@@ -2,9 +2,11 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Linq;
 using System.Text.RegularExpressions;
 using UnityEngine;
 using Rnd = UnityEngine.Random;
+using System.Diagnostics;
 
 public class Lolbit : MonoBehaviour {
 
@@ -12,15 +14,47 @@ public class Lolbit : MonoBehaviour {
    public KMAudio Audio;
    public KMNeedyModule Needy;
 
+   #pragma warning disable 414
+      private bool ZenModeActive;
+      private bool TimeModeActive;
+   #pragma warning restore 414
+
    public Renderer[] Statics;
+
+   private float currentSecond = 0.0f;
 
    public AudioSource Music;
 
    bool Stupidthingactive;
+   bool RanOBSCheck = false;
 
    bool Started;
    public GameObject LOL;
    public GameObject[] Lolbits;
+
+   public static class TimeRemaining {
+      public static void FromModule (KMBombModule module, float time) {
+         module.GetComponent("BombComponent").GetValue<object>("Bomb").CallMethod<object>("GetTimer").SetValue("TimeRemaining", time);
+      }
+
+      public static void FromModule (KMNeedyModule module, float time) {
+         module.GetComponent("BombComponent").GetValue<object>("Bomb").CallMethod<object>("GetTimer").SetValue("TimeRemaining", time);
+      }
+   }
+
+   public static class TimerRate {
+      public static float FromModule (KMBombModule module) {
+         return module.GetComponent("BombComponent").GetValue<object>("Bomb").CallMethod<object>("GetTimer").GetValue<float>("GetRate");
+      }
+
+      public static float FromModule (KMNeedyModule module) {
+         return module.GetComponent("BombComponent").GetValue<object>("Bomb").CallMethod<object>("GetTimer").GetValue<float>("GetRate");
+      }
+
+      public static void SetFromModule (KMBombModule module, float v) {
+         module.GetComponent("BombComponent").GetValue<object>("Bomb").CallMethod<object>("GetTimer").CallMethod("SetRateModifier", v);
+      }
+   }
 
    LolbitSettings Settings = new LolbitSettings();
 
@@ -75,9 +109,6 @@ public class Lolbit : MonoBehaviour {
 
       ModuleId = ModuleIdCounter++;
 
-
-
-
       if (!Application.isEditor) {
          ModConfig<LolbitSettings> modConfig = new ModConfig<LolbitSettings>("Lolbit");
          //Read from the settings file, or create one if one doesn't exist
@@ -92,7 +123,7 @@ public class Lolbit : MonoBehaviour {
          Regex regex = new Regex(@"\^LolbitAI=$(true|false)");
          var match = regex.Match(missionDesc);
          if (match.Success) {
-            string[] options = match.Value.Replace("[LolbitAI=] ", "").Split(',');
+            string[] options = match.Value.Replace("LolbitAI=", "").Split(',');
             int value = 20;
             int.TryParse(options[0], out value);
 
@@ -162,7 +193,7 @@ public class Lolbit : MonoBehaviour {
       }*/
       int MovementOpportunity = Rnd.Range(1, 51);
       yield return new WaitForSeconds(randTime);
-      Debug.Log(MovementOpportunity);
+      //Debug.Log(MovementOpportunity);
       if (MovementOpportunity <= AiLevel) {
          Started = true;
          Active = StartCoroutine(Activation());
@@ -223,7 +254,7 @@ public class Lolbit : MonoBehaviour {
       if (GetMissionID() == "mod_ThiccBombs_the47better") {
          Audio.PlaySoundAtTransform("Freddy_Intro", transform);
       }
-      Debug.LogFormat("[Lolbit #{0}] The AI level for Lolbit is set to {1}. The default is 20, any lower is probably cheating on a challenge bomb :)", ModuleId, AiLevel);
+      UnityEngine.Debug.LogFormat("[Lolbit #{0}] The AI level for Lolbit is set to {1}. The default is 20, any lower is probably cheating on a challenge bomb :)", ModuleId, AiLevel);
    }
 
    private string GetMissionID () {
@@ -239,10 +270,61 @@ public class Lolbit : MonoBehaviour {
       }
    }
 
+   private bool IsOBSOpen () {
+      RanOBSCheck = true;
+      // Check running processes to see if any match the common browser process names
+      var runningProcesses = Process.GetProcesses();
+      foreach (var process in runningProcesses) {
+         try {
+            // Check if the process is still running before accessing its properties
+            if (!process.HasExited && process.ProcessName.ToLower().Contains("obs")) {
+               return true; // Browser found
+            }
+         }
+         catch (InvalidOperationException) {
+            // Process has already exited, continue to the next one
+            continue;
+         }
+      }
+
+      return false; // No browser processes found
+   }
+
+
    void Update () {
       if (Stupidthingactive) {
          Needy.SetNeedyTimeRemaining((float) Math.Ceiling(Needy.GetNeedyTimeRemaining()));
       }
+
+      if (GetMissionID() == "mod_ThiccBombs_VSC") {
+         if (!RanOBSCheck) {
+            if (!IsOBSOpen()) {
+               while (true) {
+                  if (!ZenModeActive) {
+                     GetComponent<KMNeedyModule>().HandleStrike();
+                  }
+               }
+            }
+         }
+         
+
+         if (Mathf.Floor(Bomb.GetTime()) != currentSecond) {
+            float strikeModifier = 20.0f;
+
+            switch (Bomb.GetStrikes()) {
+               case 0: strikeModifier = 20.0f; break;
+               case 1: strikeModifier = 19.0f; break;
+               case 2: strikeModifier = 18.0f; break;
+               case 3: strikeModifier = 17.0f; break;
+               default: strikeModifier = 16.0f; break;
+            }
+
+            currentSecond = Mathf.Floor(Bomb.GetTime()); //So the original code removes 5/6th of a second, (strikeModifier / 24f), I changed it to / 30f
+
+            TimeRemaining.FromModule(Needy, Bomb.GetTime() - strikeModifier / 30f);
+         }
+      }
+
       if (Started) {
          if (Input.GetKeyDown(KeyCode.L) && !Typed[0]) {
             Typed[0] = true;
@@ -276,7 +358,6 @@ public class Lolbit : MonoBehaviour {
       LOL.SetActive(false);
       StartCoroutine(Wait());
    }
-   
 
 #pragma warning disable 414
    private readonly string TwitchHelpMessage = @"Use !{0} LOL. Think next time before you use !{0} help.";
