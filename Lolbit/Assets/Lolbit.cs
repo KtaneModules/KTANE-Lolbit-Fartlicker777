@@ -125,7 +125,7 @@ public class Lolbit : MonoBehaviour {
       ModuleId = ModuleIdCounter++;
 
       if (!Application.isEditor) {
-         ModConfig<LolbitSettings> modConfig = new ModConfig<LolbitSettings>("Lolbit");
+         ModConfig<LolbitSettings> modConfig = new ModConfig<LolbitSettings>("LolbitSettings");
          //Read from the settings file, or create one if one doesn't exist
          Settings = modConfig.Settings;
          //Update the settings file in case there was an error during read
@@ -135,14 +135,14 @@ public class Lolbit : MonoBehaviour {
 
       string missionDesc = KTMissionGetter.Mission.Description;
       if (missionDesc != null) {
-         Regex regex = new Regex(@"\^LolbitAI=$(true|false)");
+         Regex regex = new Regex(@"\[Lolbit\] (AI=\d{1,2})");
          var match = regex.Match(missionDesc);
          if (match.Success) {
-            string[] options = match.Value.Replace("LolbitAI=", "").Split(',');
+            string[] options = match.Value.Replace("[Lolbit] AI=", "").Split(',');
             int value = 20;
             int.TryParse(options[0], out value);
 
-            Settings.AiLevel = value;
+            AiLevel = value;
          }
       }
 

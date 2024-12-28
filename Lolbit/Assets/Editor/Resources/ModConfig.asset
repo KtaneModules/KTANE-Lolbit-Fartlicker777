@@ -20,6 +20,14 @@ MonoBehaviour:
     Type in LOL when Lolbit is present.
 
 
+    If you want to set the AI level of Lolbit in a mission, put the following in the
+    description:
+
+    [Lolbit] AI=X
+
+    Where X is a number from 1-50.
+
+
     Manual can be found at ktane.timwi.de or in the manuals folder of your game.
 
 
